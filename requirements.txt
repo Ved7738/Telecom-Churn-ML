@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# requirements.txt  —  All Python libraries this project needs
+#
+# HOW TO INSTALL:
+#   pip install -r requirements.txt
+#
+# WHY EACH LIBRARY:
+# ─────────────────────────────────────────────────────────────────────────────
+
+# DATA MANIPULATION
+# pandas  → Think of it as "Excel inside Python". We use it to load the CSV,
+#            clean data, filter rows, rename columns, etc.
+pandas==2.0.3
+
+# numpy   → Fast math library. Used under the hood by pandas and sklearn.
+#            We use it for array operations and random seeds.
+numpy==1.24.3
+
+# MACHINE LEARNING
+# scikit-learn → The most popular ML library in Python. Gives us:
+#                - Ready-made algorithms (Logistic Regression, Random Forest)
+#                - Data preprocessing tools (StandardScaler, LabelEncoder)
+#                - Model evaluation metrics (accuracy, F1, ROC-AUC)
+#                - Train/test splitting and cross-validation
+scikit-learn==1.3.0
+
+# xgboost → The "Ferrari" of ML algorithms for tabular data.
+#            Short for "Extreme Gradient Boosting".
+#            Builds hundreds of small decision trees, each fixing errors of the previous.
+#            Wins most Kaggle competitions on structured data.
+xgboost==2.0.0
+
+# VISUALISATION
+# matplotlib → The base plotting library. Like Paint for data charts.
+matplotlib==3.7.2
+
+# seaborn    → Built on top of matplotlib. Makes beautiful statistical charts
+#              with just 1-2 lines of code (heatmaps, distributions, etc.).
+seaborn==0.12.2
+
+# WEB APP
+# flask   → Lightweight web framework. Turns Python functions into web endpoints.
+#            When you go to http://localhost:5000, Flask is what answers.
+Flask==2.3.3
+
+# gunicorn → Production web server for Flask. Used when deploying to the cloud.
+#             (Not needed for local development)
+gunicorn==21.2.0
+
+# CONFIGURATION
+# pyyaml  → Reads our config/config.yaml settings file into Python dictionaries.
+PyYAML==6.0.1
+
+# UTILITIES
+# python-dotenv → Loads secret environment variables from a .env file.
+#                 Useful for hiding API keys and passwords.
+python-dotenv==1.0.0

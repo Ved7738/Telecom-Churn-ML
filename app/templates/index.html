@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📱 Telecom Churn Predictor</title>
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      padding: 30px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 28px;
+    }
+    .page-header h1 { font-size: 2rem; letter-spacing: 1px; }
+    .page-header p  { color: #a0aec0; margin-top: 6px; font-size: .95rem; }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+      padding: 36px 40px;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    /* ── TABS ── */
+    .tabs { display: flex; border-bottom: 2px solid #e2e8f0; margin-bottom: 28px; }
+    .tab-btn {
+      background: none; border: none; padding: 10px 24px;
+      font-size: .95rem; font-weight: 600; color: #a0aec0; cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: color .2s, border-color .2s;
+    }
+    .tab-btn.active { color: #5a67d8; border-bottom-color: #5a67d8; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── SECTION HEADINGS ── */
+    .section-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #5a67d8;
+      margin: 20px 0 10px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ── FORM GRID ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 20px;
+    }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: .8rem; font-weight: 600; color: #4a5568; margin-bottom: 4px; }
+
+    input, select, textarea {
+      padding: 9px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: .9rem;
+      color: #2d3748;
+      transition: border-color .2s, box-shadow .2s;
+      background: #f7fafc;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #5a67d8;
+      box-shadow: 0 0 0 3px rgba(90,103,216,.15);
+      background: #fff;
+    }
+    textarea { height: 150px; font-family: monospace; font-size: .82rem; resize: vertical; }
+
+    /* ── PREDICT BUTTON ── */
+    .btn-predict {
+      display: block; width: 100%; margin-top: 22px;
+      padding: 13px;
+      background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      letter-spacing: .5px;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-predict:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(90,103,216,.45);
+    }
+    .btn-predict:active { transform: translateY(0); }
+
+    /* ── SPINNER ── */
+    .spinner-wrap { display: none; text-align: center; padding: 20px 0; }
+    .spinner {
+      display: inline-block; width: 40px; height: 40px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #5a67d8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-wrap p { color: #a0aec0; margin-top: 10px; font-size: .9rem; }
+
+    /* ── RESULT CARD ── */
+    .result {
+      display: none; margin-top: 24px; padding: 22px;
+      border-radius: 12px; animation: fadeUp .3s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(10px); }
+      to   { opacity:1; transform: none; }
+    }
+    .result.success { background: #f0fff4; border: 2px solid #48bb78; }
+    .result.warning { background: #fffbeb; border: 2px solid #f6ad55; }
+    .result.error   { background: #fff5f5; border: 2px solid #fc8181; color: #822727; }
+
+    .result-title {
+      font-size: 1.25rem; font-weight: 700; margin-bottom: 14px;
+    }
+    .result.success .result-title { color: #276749; }
+    .result.warning .result-title { color: #7b341e; }
+
+    /* ── PROBABILITY BARS ── */
+    .prob-row { margin-bottom: 12px; }
+    .prob-label { font-size: .82rem; font-weight: 600; color: #4a5568; margin-bottom: 5px; }
+    .bar-track {
+      background: #e2e8f0; border-radius: 8px;
+      height: 26px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: .8rem; font-weight: 700;
+      transition: width .5s ease;
+    }
+    .bar-churn    { background: linear-gradient(90deg, #e53e3e, #9b2c2c); }
+    .bar-retain   { background: linear-gradient(90deg, #38a169, #276749); }
+
+    .confidence-badge {
+      display: inline-block; margin-top: 12px;
+      background: #edf2f7; color: #4a5568;
+      font-size: .82rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    /* ── BATCH TABLE ── */
+    .batch-table { width:100%; border-collapse:collapse; font-size:.85rem; margin-top:12px; }
+    .batch-table th {
+      background: #5a67d8; color: #fff;
+      padding: 9px 12px; text-align: center; font-weight: 600;
+    }
+    .batch-table td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: center; }
+    .batch-table tr:nth-child(even) td { background: #f7fafc; }
+    .churn-badge    { background:#fff5f5; color:#c53030; padding:2px 8px; border-radius:12px; font-weight:700; }
+    .no-churn-badge { background:#f0fff4; color:#276749; padding:2px 8px; border-radius:12px; font-weight:700; }
+
+    /* ── FOOTER ── */
+    .footer { color:#718096; font-size:.8rem; text-align:center; margin-top:24px; }
+
+    @media (max-width: 520px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .card { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── PAGE HEADER ── -->
+<div class="page-header">
+  <h1>📱 Telecom Churn Predictor</h1>
+  <p>Enter customer details below to predict their likelihood of churning</p>
+</div>
+
+<!-- ── MAIN CARD ── -->
+<div class="card">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('single', this)">
+      🔮 Single Prediction
+    </button>
+    <button class="tab-btn" onclick="switchTab('batch', this)">
+      📊 Batch Prediction
+    </button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       TAB 1: SINGLE PREDICTION
+       ════════════════════════════════════════ -->
+  <div id="single" class="tab-pane active">
+
+    <!-- Section: Account Info -->
+    <div class="section-label">Account Information</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="tenure">Tenure (months)</label>
+        <input type="number" id="tenure" placeholder="e.g. 24" min="0" max="120" step="1"/>
+      </div>
+      <div class="form-group">
+        <label for="Contract">Contract Type</label>
+        <select id="Contract">
+          <option>Month-to-month</option>
+          <option>One year</option>
+          <option>Two year</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="MonthlyCharges">Monthly Charges ($)</label>
+        <input type="number" id="MonthlyCharges" placeholder="e.g. 65.50" min="0" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label for="TotalCharges">Total Charges ($)</label>
+        <input type="number" id="TotalCharges" placeholder="e.g. 1500" min="0" step="0.01"/>
+      </div>
+    </div>
+
+    <!-- Section: Demographics -->
+    <div class="section-label">Demographics</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="gender">Gender</label>
+        <select id="gender"><option>Male</option><option>Female</option></select>
+      </div>
+      <div class="form-group">
+        <label for="SeniorCitizen">Senior Citizen</label>
+        <select id="SeniorCitizen"><option value="0">No</option><option value="1">Yes</option></select>
+      </div>
+      <div class="form-group">
+        <label for="Partner">Has Partner</label>
+        <select id="Partner"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="form-group">
+        <label for="Dependents">Has Dependents</label>
+        <select id="Dependents"><option>No</option><option>Yes</option></select>
+      </div>
+    </div>
+
+    <!-- Section: Services -->
+    <div class="section-label">Services Subscribed</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="PhoneService">Phone Service</label>
+        <select id="PhoneService"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="form-group">
+        <label for="MultipleLines">Multiple Lines</label>
+        <select id="MultipleLines">
+          <option>No</option><option>Yes</option><option>No phone service</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="InternetService">Internet Service</label>
+        <select id="InternetService">
+          <option>DSL</option><option>Fiber optic</option><option>No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="OnlineSecurity">Online Security</label>
+        <select id="OnlineSecurity">
+          <option>No</option><option>Yes</option><option>No internet service</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="OnlineBackup">Online Backup</label>
+        <select id="OnlineBackup">
+          <option>No</option><option>Yes</option><option>No internet service</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="DeviceProtection">Device Protection</label>
+        <select id="DeviceProtection">
+          <option>No</option><option>Yes</option><option>No internet service</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="TechSupport">Tech Support</label>
+        <select id="TechSupport">
+          <option>No</option><option>Yes</option><option>No internet service</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="StreamingTV">Streaming TV</label>
+        <select id="StreamingTV">
+          <option>No</option><option>Yes</option><option>No internet service</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="StreamingMovies">Streaming Movies</label>
+        <select id="StreamingMovies">
+          <option>No</option><option>Yes</option><option>No internet service</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Section: Billing -->
+    <div class="section-label">Billing</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="PaperlessBilling">Paperless Billing</label>
+        <select id="PaperlessBilling"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="form-group full">
+        <label for="PaymentMethod">Payment Method</label>
+        <select id="PaymentMethod">
+          <option>Electronic check</option>
+          <option>Mailed check</option>
+          <option>Bank transfer (automatic)</option>
+          <option>Credit card (automatic)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-predict" onclick="predictSingle()">
+      🔮 Predict Churn Risk
+    </button>
+  </div>
+  <!-- end #single -->
+
+  <!-- ════════════════════════════════════════
+       TAB 2: BATCH PREDICTION
+       ════════════════════════════════════════ -->
+  <div id="batch" class="tab-pane">
+    <p style="color:#718096; font-size:.9rem; margin-bottom:16px;">
+      Paste a JSON array of customer objects. Each object must include all 19 feature fields.
+    </p>
+    <div class="form-group">
+      <label for="batchInput">JSON Array Input</label>
+      <textarea id="batchInput" placeholder='[
+  {
+    "tenure": 24, "MonthlyCharges": 65.5, "TotalCharges": 1500,
+    "SeniorCitizen": 0, "gender": "Male", "Partner": "Yes",
+    "Dependents": "No", "PhoneService": "Yes", "MultipleLines": "No",
+    "InternetService": "DSL", "OnlineSecurity": "No", "OnlineBackup": "Yes",
+    "DeviceProtection": "No", "TechSupport": "No",
+    "StreamingTV": "No", "StreamingMovies": "No",
+    "Contract": "Month-to-month", "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check"
+  }
+]'></textarea>
+    </div>
+    <button class="btn-predict" onclick="predictBatch()">
+      📊 Run Batch Prediction
+    </button>
+  </div>
+  <!-- end #batch -->
+
+  <!-- SPINNER -->
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner"></div>
+    <p>Analysing customer data…</p>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result" id="result"></div>
+
+</div>
+<!-- end .card -->
+
+<div class="footer">
+  Telecom Churn ML Project &nbsp;·&nbsp; Powered by Flask + Scikit-learn + XGBoost
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT — handles button clicks & API calls
+     ══════════════════════════════════════════ -->
+<script>
+
+  /* ── Tab Switching ── */
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    hideResult();
+  }
+
+  /* ── UI State Helpers ── */
+  function setLoading(on) {
+    document.getElementById('spinner').style.display = on ? 'block' : 'none';
+  }
+  function hideResult() {
+    const el = document.getElementById('result');
+    el.style.display = 'none';
+  }
+  function showResult(html, type) {
+    const el = document.getElementById('result');
+    el.innerHTML = html;
+    el.className = 'result ' + type;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /* ── Collect All Form Fields ── */
+  function collectFormData() {
+    const fields = [
+      'tenure','MonthlyCharges','TotalCharges','SeniorCitizen',
+      'gender','Partner','Dependents','PhoneService','MultipleLines',
+      'InternetService','OnlineSecurity','OnlineBackup','DeviceProtection',
+      'TechSupport','StreamingTV','StreamingMovies',
+      'Contract','PaperlessBilling','PaymentMethod'
+    ];
+    const data = {};
+    for (const id of fields) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      data[id] = (el.type === 'number') ? parseFloat(el.value) : el.value;
+    }
+    data['SeniorCitizen'] = parseInt(data['SeniorCitizen']);
+    return data;
+  }
+
+  /* ── Single Prediction ── */
+  async function predictSingle() {
+    const data = collectFormData();
+
+    if (isNaN(data.tenure) || isNaN(data.MonthlyCharges) || isNaN(data.TotalCharges)) {
+      showResult(
+        '<strong>⚠️ Please fill in all numeric fields</strong> (Tenure, Monthly Charges, Total Charges).',
+        'error'
+      );
+      return;
+    }
+
+    setLoading(true);
+    hideResult();
+
+    try {
+      const resp = await fetch('/api/predict', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify(data)
+      });
+      const r = await resp.json();
+
+      if (r.status === 'success') {
+        const cp  = (r.churn_probability * 100).toFixed(1);
+        const np  = (r.no_churn_probability * 100).toFixed(1);
+        const cls = r.prediction === 1 ? 'warning' : 'success';
+        const icon= r.prediction === 1 ? '⚠️' : '✅';
+
+        showResult(`
+          <div class="result-title">${icon} ${r.prediction_label}</div>
+
+          <div class="prob-row">
+            <div class="prob-label">🔴 Churn Risk: ${cp}%</div>
+            <div class="bar-track">
+              <div class="bar-fill bar-churn" style="width:${cp}%">${cp}%</div>
+            </div>
+          </div>
+
+          <div class="prob-row">
+            <div class="prob-label">🟢 Retention Probability: ${np}%</div>
+            <div class="bar-track">
+              <div class="bar-fill bar-retain" style="width:${np}%">${np}%</div>
+            </div>
+          </div>
+
+          <div class="confidence-badge">
+            Model confidence: ${(r.confidence * 100).toFixed(1)}%
+          </div>
+        `, cls);
+      } else {
+        showResult(`<strong>❌ Error:</strong> ${r.message}`, 'error');
+      }
+
+    } catch (err) {
+      showResult(`<strong>❌ Network error:</strong> ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── Batch Prediction ── */
+  async function predictBatch() {
+    let data;
+    try {
+      data = JSON.parse(document.getElementById('batchInput').value);
+    } catch {
+      showResult('<strong>❌ Invalid JSON.</strong> Check your formatting.', 'error');
+      return;
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+      showResult('<strong>❌ Provide a non-empty JSON array.</strong>', 'error');
+      return;
+    }
+
+    setLoading(true);
+    hideResult();
+
+    try {
+      const resp = await fetch('/api/batch-predict', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify(data)
+      });
+      const r = await resp.json();
+
+      if (r.status === 'success') {
+        const rows = r.results.map((res, i) => {
+          if (res.error) {
+            return `<tr><td>${i+1}</td><td colspan="2" style="color:red;">Error: ${res.error}</td></tr>`;
+          }
+          const cp   = (res.churn_probability * 100).toFixed(1);
+          const badge = res.prediction === 1
+            ? `<span class="churn-badge">⚠️ Will Churn</span>`
+            : `<span class="no-churn-badge">✅ Will Stay</span>`;
+          return `<tr>
+            <td>${i + 1}</td>
+            <td>${badge}</td>
+            <td>${cp}%</td>
+          </tr>`;
+        }).join('');
+
+        showResult(`
+          <div class="result-title">📊 Batch Results — ${r.count} customer(s)</div>
+          <table class="batch-table">
+            <thead>
+              <tr><th>#</th><th>Prediction</th><th>Churn Risk</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `, 'success');
+      } else {
+        showResult(`<strong>❌ Error:</strong> ${r.message}`, 'error');
+      }
+
+    } catch (err) {
+      showResult(`<strong>❌ Network error:</strong> ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+</script>
+</body>
+</html>
